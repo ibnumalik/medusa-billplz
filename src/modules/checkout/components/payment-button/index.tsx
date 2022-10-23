@@ -6,7 +6,8 @@ import Spinner from "@modules/common/icons/spinner"
 import { OnApproveActions, OnApproveData } from "@paypal/paypal-js"
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
-import { useCart } from "medusa-react"
+import { useCart, useUpdatePaymentSession } from "medusa-react"
+import { useRouter } from "next/router"
 import React, { useEffect, useState } from "react"
 
 type PaymentButtonProps = {
@@ -52,7 +53,11 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ paymentSession }) => {
       return <ManualTestPaymentButton notReady={notReady} />
     case "billplz":
       return (
-        <BillplzPaymentButton session={paymentSession} notReady={notReady} />
+        <BillplzPaymentButton
+          cart={cart}
+          session={paymentSession}
+          notReady={notReady}
+        />
       )
     case "paypal":
       return (
@@ -248,12 +253,18 @@ const ManualTestPaymentButton = ({ notReady }: { notReady: boolean }) => {
 const BillplzPaymentButton = ({
   session,
   notReady,
+  cart,
 }: {
   session: PaymentSession
   notReady: boolean
+  cart: any
 }) => {
   const [submitting, setSubmitting] = useState(false)
-  const { completeCheckout, cart } = useCart()
+  const { onPaymentCompleted } = useCheckout()
+  const router = useRouter()
+  const { completeCheckout } = useCart()
+  const { mutate: updateSession, isSuccess: updateSuccess } =
+    useUpdatePaymentSession(cart.id)
   const {
     mutate: complete,
     isLoading,
@@ -264,12 +275,35 @@ const BillplzPaymentButton = ({
     if (completeSuccess) {
       redirectToBank()
     }
-  }, [completeSuccess, cart])
+  }, [completeSuccess])
+
+  useEffect(() => {
+    if (router.query["billplz[paid]"]) {
+      updatePaymentStatus(router.query)
+    }
+  }, [router.query])
+
+  useEffect(() => {
+    if (updateSuccess) {
+      sudah()
+    }
+  }, [updateSuccess])
+
+  const sudah = async () => {
+    const payment = await retrieveCart()
+    onPaymentCompleted()
+  }
+
+  function updatePaymentStatus(value: any) {
+    updateSession({ provider_id: "billplz", data: { billplz_response: value } })
+  }
 
   const redirectToBank = async () => {
     const paymentSession = await retrieveCart()
-
-    if (paymentSession?.data?.url) {
+    const isPaid: boolean =
+      (paymentSession?.data?.billplz_response as any)?.["billplz[paid]"] ===
+      "true"
+    if (paymentSession?.data?.url && !isPaid) {
       const billUrl = `${paymentSession?.data?.url}?auto_submit=true`
       window.location.replace(billUrl)
     }

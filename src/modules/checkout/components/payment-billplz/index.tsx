@@ -56,7 +56,7 @@ const PaymentBillplz = ({ cart }: any) => {
         <div className="flex items-center gap-x-2 w-full p-2">
           <RadioGroup
             value={selected}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: any) => e.stopPropagation()}
             onChange={updatePaymentMethod}
           >
             {banks.map((bank) => (
