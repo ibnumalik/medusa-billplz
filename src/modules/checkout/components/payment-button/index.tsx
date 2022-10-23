@@ -1,3 +1,4 @@
+import { medusaClient } from "@lib/config"
 import { useCheckout } from "@lib/context/checkout-context"
 import { PaymentSession } from "@medusajs/medusa"
 import Button from "@modules/common/components/button"
@@ -49,6 +50,10 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ paymentSession }) => {
       )
     case "manual":
       return <ManualTestPaymentButton notReady={notReady} />
+    case "billplz":
+      return (
+        <BillplzPaymentButton session={paymentSession} notReady={notReady} />
+      )
     case "paypal":
       return (
         <PayPalPaymentButton notReady={notReady} session={paymentSession} />
@@ -235,6 +240,62 @@ const ManualTestPaymentButton = ({ notReady }: { notReady: boolean }) => {
 
   return (
     <Button disabled={submitting || notReady} onClick={handlePayment}>
+      {submitting ? <Spinner /> : "Checkout"}
+    </Button>
+  )
+}
+
+const BillplzPaymentButton = ({
+  session,
+  notReady,
+}: {
+  session: PaymentSession
+  notReady: boolean
+}) => {
+  const [submitting, setSubmitting] = useState(false)
+  const { completeCheckout, cart } = useCart()
+  const {
+    mutate: complete,
+    isLoading,
+    isSuccess: completeSuccess,
+  } = completeCheckout
+
+  useEffect(() => {
+    if (completeSuccess) {
+      redirectToBank()
+    }
+  }, [completeSuccess, cart])
+
+  const redirectToBank = async () => {
+    const paymentSession = await retrieveCart()
+
+    if (paymentSession?.data?.url) {
+      const billUrl = `${paymentSession?.data?.url}?auto_submit=true`
+      window.location.replace(billUrl)
+    }
+  }
+
+  const retrieveCart = async () => {
+    const { cart } = await medusaClient.carts.retrieve(session.cart_id)
+    return cart.payment_session
+  }
+
+  const handlePayment = async () => {
+    const paymentSession = await retrieveCart()
+    if (!paymentSession?.data?.billplz_ref) {
+      return alert("Please select your bank!")
+    }
+
+    setSubmitting(true)
+    complete()
+    setSubmitting(false)
+  }
+
+  return (
+    <Button
+      disabled={submitting || notReady || isLoading}
+      onClick={handlePayment}
+    >
       {submitting ? <Spinner /> : "Checkout"}
     </Button>
   )
