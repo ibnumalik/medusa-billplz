@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  storefront:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medusa-storefront:starter
+    container_name: medusa-storefront-default
+    environment:
+      APP_ENV: development
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./src:/app/src
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.medusa-storefront.rule=Host(`medusa.localhost`)"
+      - "traefik.http.routers.medusa-storefront.entrypoints=web"
+      - 'traefik.http.services.medusa-storefront.loadbalancer.server.port=8000'
+      - 'traefik.docker.network=web'
+      # - "traefik.http.routers.medusa-storefront.tls.certresolver=myresolver"
+    networks:
+      - web
+    network_mode: "host"
+
+volumes:
+  node_modules:
+
+networks:
+  web:
+    external: true
