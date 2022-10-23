@@ -3,7 +3,7 @@ import { AccountProvider } from "@lib/context/account-context"
 import { CartDropdownProvider } from "@lib/context/cart-dropdown-context"
 import { MobileMenuProvider } from "@lib/context/mobile-menu-context"
 import { StoreProvider } from "@lib/context/store-context"
-import { CartProvider, MedusaProvider } from "medusa-react"
+import { CartProvider, MedusaProvider, SessionCartProvider } from "medusa-react"
 import { Hydrate } from "react-query"
 import "styles/globals.css"
 import { AppPropsWithLayout } from "types/global"
@@ -24,13 +24,15 @@ function App({
       <Hydrate state={pageProps.dehydratedState}>
         <CartDropdownProvider>
           <MobileMenuProvider>
-            <CartProvider>
-              <StoreProvider>
-                <AccountProvider>
-                  {getLayout(<Component {...pageProps} />)}
-                </AccountProvider>
-              </StoreProvider>
-            </CartProvider>
+            <SessionCartProvider>
+              <CartProvider>
+                <StoreProvider>
+                  <AccountProvider>
+                    {getLayout(<Component {...pageProps} />)}
+                  </AccountProvider>
+                </StoreProvider>
+              </CartProvider>
+            </SessionCartProvider>
           </MobileMenuProvider>
         </CartDropdownProvider>
       </Hydrate>
