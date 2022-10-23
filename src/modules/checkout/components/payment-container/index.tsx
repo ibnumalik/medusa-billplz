@@ -5,6 +5,7 @@ import React from "react"
 import PaymentStripe from "../payment-stripe"
 import PaymentTest from "../payment-test"
 import PaymentBillplz from "../payment-billplz"
+import { useCart } from "medusa-react"
 
 type PaymentContainerProps = {
   paymentSession: PaymentSession
@@ -76,6 +77,8 @@ const PaymentElement = ({
 }: {
   paymentSession: PaymentSession
 }) => {
+  const { cart } = useCart()
+
   switch (paymentSession.provider_id) {
     case "stripe":
       return (
@@ -87,7 +90,7 @@ const PaymentElement = ({
       // We only display the test payment form if we are in a development environment
       return process.env.NODE_ENV === "development" ? <PaymentTest /> : null
     case "billplz":
-      return <PaymentBillplz />
+      return <PaymentBillplz cart={cart} />
     default:
       return null
   }
