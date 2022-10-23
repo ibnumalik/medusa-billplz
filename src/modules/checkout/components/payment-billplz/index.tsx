@@ -2,6 +2,7 @@ import { RadioGroup } from "@headlessui/react"
 import { MEDUSA_BACKEND_URL } from "@lib/config"
 import Radio from "@modules/common/components/radio"
 import Alert from "@modules/common/icons/alert"
+import { useUpdatePaymentSession } from "medusa-react"
 import { useState } from "react"
 import { useQuery } from "react-query"
 
@@ -12,21 +13,26 @@ interface FpxList {
 }
 
 const fetchFpxList = async () => {
-  return await fetch(MEDUSA_BACKEND_URL + "/billplz/fpx_banks").then((res) => {
-    console.log({ res })
-
-    return res.json()
-  })
+  return await fetch(MEDUSA_BACKEND_URL + "/billplz/fpx_banks").then((res) =>
+    res.json()
+  )
 }
 
-const PaymentBillplz = () => {
+const PaymentBillplz = ({ cart }: any) => {
   const {
     data: banks,
     isLoading,
     error,
     isSuccess,
   } = useQuery<FpxList[]>(["fpxList"], () => fetchFpxList())
-  const [selected, setSelected] = useState()
+  const [selected, setSelected] = useState("")
+  const { mutate } = useUpdatePaymentSession(cart.id)
+
+  function updatePaymentMethod(value: string) {
+    mutate({ provider_id: "billplz", data: { billplz_ref: value } })
+
+    setSelected(value)
+  }
 
   if (isLoading) {
     return <p>Loading...</p>
@@ -48,12 +54,23 @@ const PaymentBillplz = () => {
     return (
       <div className="w-full">
         <div className="flex items-center gap-x-2 w-full p-2">
-          <RadioGroup value={selected} onChange={setSelected}>
+          <RadioGroup
+            value={selected}
+            onClick={(e) => e.stopPropagation()}
+            onChange={updatePaymentMethod}
+          >
             {banks.map((bank) => (
               <RadioGroup.Option key={bank.name} value={bank.name}>
                 <div className="flex items-center gap-x-4">
                   <Radio checked={selected === bank.name} />
-                  <span className="text-base-regular">{bank.label}</span>
+                  <span className="text-base-regular flex items-center">
+                    <span
+                      className={`w-1 h-1 rounded-full inline-block mr-3 ${
+                        bank.active ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    ></span>
+                    {bank.label}
+                  </span>
                 </div>
               </RadioGroup.Option>
             ))}
@@ -62,6 +79,8 @@ const PaymentBillplz = () => {
       </div>
     )
   }
+
+  return null
 }
 
 export default PaymentBillplz
